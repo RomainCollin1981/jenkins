@@ -60,9 +60,6 @@ pipeline {
         }
         
         stage('Deploy to QA') {
-            when {
-                branch 'qa'
-            }
             steps {
                 script {
                     sh """
@@ -77,9 +74,6 @@ pipeline {
         }
         
         stage('Deploy to Staging') {
-            when {
-                branch 'staging'
-            }
             steps {
                 script {
                     sh """
@@ -94,9 +88,6 @@ pipeline {
         }
         
         stage('Deploy to Production') {
-            when {
-                branch 'master'
-            }
             steps {
                 input message: 'Deploy to production?', ok: 'Deploy'
                 script {
