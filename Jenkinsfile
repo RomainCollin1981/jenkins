@@ -140,23 +140,9 @@ EOF
         
         stage('Deploy to Production') {
             when {
-                anyOf {
-                    allOf {
-                        branch 'master'
-                        expression {
-                            def currentBranch = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
-                            echo "Branche courante : ${currentBranch}"
-                            return currentBranch == 'master' || currentBranch == 'main'
-                        }
-                    }
-                    allOf {
-                        branch 'main'
-                        expression {
-                            def currentBranch = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
-                            echo "Branche courante : ${currentBranch}"
-                            return currentBranch == 'master' || currentBranch == 'main'
-                        }
-                    }
+                expression { 
+                    echo "BRANCH_NAME is: ${env.BRANCH_NAME}"
+                    return env.BRANCH_NAME == 'master' || env.BRANCH_NAME == 'main'
                 }
             }
             steps {
@@ -166,7 +152,7 @@ EOF
                     
                     Attention : Vous êtes sur le point de déployer en PRODUCTION !
                     
-                    - Branche actuelle : master
+                    - Branche actuelle : ${env.BRANCH_NAME}
                     - Environment : production
                     - Services concernés : movie-service et cast-service
                     
