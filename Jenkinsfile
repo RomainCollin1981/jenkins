@@ -15,6 +15,36 @@ pipeline {
     }
     
     stages {
+        stage('Branch Diagnostic') {
+            steps {
+                script {
+                    echo "=== DIAGNOSTIC DE LA BRANCHE ==="
+                    // Affiche la variable d'environnement BRANCH_NAME
+                    echo "BRANCH_NAME from env: ${env.BRANCH_NAME}"
+                    
+                    // Affiche la branche Git actuelle
+                    sh '''
+                        echo "Git branch command output:"
+                        git branch
+                        
+                        echo "\nCurrent branch from git rev-parse:"
+                        git rev-parse --abbrev-ref HEAD
+                        
+                        echo "\nAll branches:"
+                        git branch -a
+                        
+                        echo "\nGit status:"
+                        git status
+                    '''
+                    
+                    // Stocke la branche actuelle pour utilisation ultérieure
+                    env.CURRENT_BRANCH = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+                    echo "Current branch stored: ${env.CURRENT_BRANCH}"
+                    echo "================================"
+                }
+            }
+        }
+        
         stage('Create Namespaces') {
             steps {
                 script {
@@ -141,8 +171,10 @@ EOF
         stage('Deploy to Production') {
             when {
                 expression { 
-                    echo "BRANCH_NAME is: ${env.BRANCH_NAME}"
-                    return env.BRANCH_NAME == 'master' || env.BRANCH_NAME == 'main'
+                    echo "Checking branch for production deployment:"
+                    echo "BRANCH_NAME from env: ${env.BRANCH_NAME}"
+                    echo "CURRENT_BRANCH from git: ${env.CURRENT_BRANCH}"
+                    return env.BRANCH_NAME == 'master' || env.BRANCH_NAME == 'main' || env.CURRENT_BRANCH == 'master' || env.CURRENT_BRANCH == 'main'
                 }
             }
             steps {
