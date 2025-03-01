@@ -91,8 +91,16 @@ pipeline {
         }
         
         stage('Deploy to Production') {
+            when {
+                branch 'master'  // Déploiement uniquement sur la branche master
+            }
             steps {
-                input message: 'Deploy to production?', ok: 'Deploy'
+                // Validation manuelle requise
+                input message: 'Êtes-vous sûr de vouloir déployer en PRODUCTION ?', ok: 'Oui, je confirme le déploiement'
+                
+                // Ajout d'une pause pour la réflexion
+                sleep(time: 10, unit: 'SECONDS')
+                
                 script {
                     sh """
                         helm upgrade --install ${APP_NAME}-prod ./charts \
