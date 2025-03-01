@@ -12,7 +12,7 @@ pipeline {
         stage('Create Namespaces') {
             steps {
                 script {
-                    // Cation des namespacgit add.es pour chaque environnement
+                    // Cat ion des namespacgit add.es pour chaque environnement
                     sh '''
                         kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
                         kubectl create namespace qa --dry-run=client -o yaml | kubectl apply -f -
