@@ -139,18 +139,37 @@ EOF
         }
         
         stage('Deploy to Production') {
-
             when {
-                branch 'master'  // Déploiement uniquement sur la branche master
+                allOf {
+                    branch 'master'  // Déploiement uniquement sur la branche master
+                    expression {
+                        // Vérification supplémentaire que nous sommes bien sur master
+                        sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim() == 'master'
+                    }
+                }
             }
             steps {
-                // Validation manuelle requise
-                input message: 'Êtes-vous sûr de vouloir déployer en PRODUCTION ?', ok: 'Oui, je confirme le déploiement'
+                // Validation manuelle requise avec message explicite
+                input message: '''
+                    DÉPLOIEMENT EN PRODUCTION
+                    
+                    Attention : Vous êtes sur le point de déployer en PRODUCTION !
+                    
+                    - Branche actuelle : master
+                    - Environment : production
+                    - Services concernés : movie-service et cast-service
+                    
+                    Êtes-vous absolument sûr de vouloir continuer ?
+                ''', ok: 'Oui, je confirme le déploiement en PRODUCTION'
                 
-                // Ajout d'une pause pour la réflexion
+                // Pause de sécurité pour la réflexion
+                echo 'Pause de sécurité de 10 secondes avant déploiement...'
                 sleep(time: 10, unit: 'SECONDS')
                 
                 script {
+                    // Message de début de déploiement
+                    echo 'Début du déploiement en PRODUCTION...'
+                    
                     sh """
                         helm upgrade --install ${APP_NAME}-prod ./charts \
                         --namespace prod \
@@ -159,6 +178,9 @@ EOF
                         --set environment=prod \
                         --set service.nodePort=30004
                     """
+                    
+                    // Message de confirmation
+                    echo 'Déploiement en PRODUCTION terminé avec succès!'
                 }
             }
         }
