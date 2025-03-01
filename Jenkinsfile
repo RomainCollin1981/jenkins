@@ -15,6 +15,40 @@ pipeline {
     }
     
     stages {
+        stage('Unit Tests') {
+            steps {
+                script {
+                    // Tests pour movie-service
+                    dir('movie-service') {
+                        sh '''
+                            # Installation des dépendances Python
+                            python3 -m pip install --user pytest requests
+                            
+                            # Exécution des tests
+                            python3 -m pytest tests/ -v || exit 1
+                            
+                            # Affichage du résultat
+                            echo "Tests unitaires movie-service terminés avec succès"
+                        '''
+                    }
+                    
+                    // Tests pour cast-service
+                    dir('cast-service') {
+                        sh '''
+                            # Installation des dépendances Python
+                            python3 -m pip install --user pytest requests
+                            
+                            # Exécution des tests
+                            python3 -m pytest tests/ -v || exit 1
+                            
+                            # Affichage du résultat
+                            echo "Tests unitaires cast-service terminés avec succès"
+                        '''
+                    }
+                }
+            }
+        }
+        
         stage('Create Namespaces') {
             steps {
                 script {
@@ -121,6 +155,12 @@ pipeline {
                 sh 'docker logout'
                 cleanWs()
             }
+        }
+        success {
+            echo 'Tous les tests ont réussi et les déploiements sont terminés!'
+        }
+        failure {
+            echo 'Le pipeline a échoué. Vérifiez les logs pour plus de détails.'
         }
     }
 } 
