@@ -28,23 +28,23 @@ pipeline {
         stage('Build & Push Docker Images') {
             steps {
                 script {
-                    // Utilisation sécurisée des credentials Docker
-                    withDockerRegistry([ credentialsId: "docker-hub-credentials", url: "" ]) {
-                        // Build and push movie service
-                        dir('movie-service') {
-                            sh """
-                                docker build -t ${DOCKER_REGISTRY}/movie-service:${BUILD_NUMBER} .
-                                docker push ${DOCKER_REGISTRY}/movie-service:${BUILD_NUMBER}
-                            """
-                        }
-                        
-                        // Build and push cast service
-                        dir('cast-service') {
-                            sh """
-                                docker build -t ${DOCKER_REGISTRY}/cast-service:${BUILD_NUMBER} .
-                                docker push ${DOCKER_REGISTRY}/cast-service:${BUILD_NUMBER}
-                            """
-                        }
+                    // Login to Docker Hub avec la variable existante
+                    sh "echo ${DOCKER_HUB_PASS} | docker login -u ${DOCKER_REGISTRY} --password-stdin"
+                    
+                    // Build and push movie service
+                    dir('movie-service') {
+                        sh """
+                            docker build -t ${DOCKER_REGISTRY}/movie-service:${BUILD_NUMBER} .
+                            docker push ${DOCKER_REGISTRY}/movie-service:${BUILD_NUMBER}
+                        """
+                    }
+                    
+                    // Build and push cast service
+                    dir('cast-service') {
+                        sh """
+                            docker build -t ${DOCKER_REGISTRY}/cast-service:${BUILD_NUMBER} .
+                            docker push ${DOCKER_REGISTRY}/cast-service:${BUILD_NUMBER}
+                        """
                     }
                 }
             }
@@ -121,6 +121,7 @@ pipeline {
     
     post {
         always {
+            sh 'docker logout'
             cleanWs()
         }
     }
