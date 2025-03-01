@@ -62,8 +62,8 @@ def test_movie_addition():
     assert 1 + 1 == 2, "Test d'addition basique"
 EOF
                         
-                        # Test du conteneur movie-service
-                        docker run --rm ${MOVIE_SERVICE_IMAGE} python3 -m pytest /app/tests/ -v
+                        # Test du conteneur movie-service avec installation de pytest
+                        docker run --rm ${MOVIE_SERVICE_IMAGE} /bin/bash -c "pip install pytest && python3 -m pytest /app/tests/ -v"
                     '''
                     
                     // Tests pour cast-service
@@ -80,8 +80,8 @@ def test_cast_addition():
     assert 1 + 1 == 2, "Test d'addition basique"
 EOF
                         
-                        # Test du conteneur cast-service
-                        docker run --rm ${CAST_SERVICE_IMAGE} python3 -m pytest /app/tests/ -v
+                        # Test du conteneur cast-service avec installation de pytest
+                        docker run --rm ${CAST_SERVICE_IMAGE} /bin/bash -c "pip install pytest && python3 -m pytest /app/tests/ -v"
                     '''
                 }
             }
