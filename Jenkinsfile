@@ -4,8 +4,11 @@ pipeline {
     environment {
         DOCKER_REGISTRY = 'rcollin1981'
         APP_NAME = 'fastapiapp'
-        // Utilisation des credentials Docker Hub existants
-        DOCKER_HUB = credentials('DOCKER_HUB_PASS')
+        // Les credentials doivent être configurés dans Jenkins avec :
+        // ID: DOCKER_HUB_PASS
+        // Username: rcollin1981 (votre username Docker Hub)
+        // Password: votre token d'accès Docker Hub
+        DOCKER_CREDENTIALS = credentials('DOCKER_HUB_PASS')
         KUBECONFIG = credentials('config')
         MOVIE_SERVICE_IMAGE = "${DOCKER_REGISTRY}/jenkins_devops_exams_movie_service:latest"
         CAST_SERVICE_IMAGE = "${DOCKER_REGISTRY}/jenkins_devops_exams_cast_service:latest"
@@ -28,9 +31,9 @@ pipeline {
         stage('Docker Login & Pull Images') {
             steps {
                 script {
-                    // Utilisation des credentials existants
+                    // Utilisation sécurisée des credentials Docker Hub
                     sh """
-                        echo ${DOCKER_HUB_PSW} | docker login -u ${DOCKER_HUB_USR} --password-stdin
+                        echo ${DOCKER_CREDENTIALS_PSW} | docker login -u ${DOCKER_CREDENTIALS_USR} --password-stdin
                         docker pull ${MOVIE_SERVICE_IMAGE}
                         docker pull ${CAST_SERVICE_IMAGE}
                     """
@@ -110,7 +113,7 @@ pipeline {
     
     post {
         always {
-            node('any') {  // Ajout du contexte node pour le bloc post
+            script {
                 sh 'docker logout'
                 cleanWs()
             }
