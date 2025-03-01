@@ -31,12 +31,16 @@ pipeline {
         stage('Docker Login & Pull Images') {
             steps {
                 script {
-                    // Utilisation sécurisée des credentials Docker Hub
-                    sh """
-                        echo ${DOCKER_CREDENTIALS_PSW} | docker login -u ${DOCKER_CREDENTIALS_USR} --password-stdin
-                        docker pull ${MOVIE_SERVICE_IMAGE}
-                        docker pull ${CAST_SERVICE_IMAGE}
-                    """
+                    // Utilisation plus sécurisée des credentials Docker Hub
+                    withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB_PASS', 
+                                                   usernameVariable: 'DOCKER_USER', 
+                                                   passwordVariable: 'DOCKER_PASS')]) {
+                        sh '''
+                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                            docker pull ${MOVIE_SERVICE_IMAGE}
+                            docker pull ${CAST_SERVICE_IMAGE}
+                        '''
+                    }
                 }
             }
         }
