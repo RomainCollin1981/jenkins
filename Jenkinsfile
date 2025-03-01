@@ -3,9 +3,8 @@ pipeline {
     
     environment {
         DOCKER_REGISTRY = 'rcollin1981'
-        APP_NAME = 'fastapiapp'
         // Utiliser les credentials de type 'Username with password'
-        DOCKER_CREDENTIALS = credentials('docker-hub-credentials')
+        DOCKER_CREDENTIALS = credentials('DOCKER_HUB_PASS')
         // Utilisation de la variable Jenkins 'config' pour kubeconfig
         KUBECONFIG = credentials('config')
     }
