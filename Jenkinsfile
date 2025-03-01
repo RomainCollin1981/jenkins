@@ -15,31 +15,49 @@ pipeline {
     }
     
     stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    // Checkout avec la configuration spécifique
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: '*/master']],
+                        userRemoteConfigs: [[
+                            url: 'https://github.com/RomainCollin1981/jenkins.git'
+                        ]]
+                    ])
+                }
+            }
+        }
+        
         stage('Branch Diagnostic') {
             steps {
                 script {
                     echo "=== DIAGNOSTIC DE LA BRANCHE ==="
-                    // Affiche la variable d'environnement BRANCH_NAME
-                    echo "BRANCH_NAME from env: ${env.BRANCH_NAME}"
                     
-                    // Affiche la branche Git actuelle
+                    // Récupération de la branche de manière plus fiable
+                    def gitBranch = sh(
+                        script: 'git name-rev --name-only HEAD',
+                        returnStdout: true
+                    ).trim()
+                    
+                    echo "Git branch from name-rev: ${gitBranch}"
+                    
+                    // Stockage de la branche
+                    env.CURRENT_BRANCH = gitBranch.replaceAll('remotes/origin/', '')
+                                                 .replaceAll('\\^.*', '')
+                    
+                    echo "Stored branch name: ${env.CURRENT_BRANCH}"
+                    
+                    // Affichage des informations Git
                     sh '''
-                        echo "Git branch command output:"
-                        git branch
-                        
-                        echo "\nCurrent branch from git rev-parse:"
-                        git rev-parse --abbrev-ref HEAD
-                        
-                        echo "\nAll branches:"
-                        git branch -a
-                        
-                        echo "\nGit status:"
+                        echo "Git status:"
                         git status
+                        
+                        echo "\nGit branch list:"
+                        git branch -a
                     '''
                     
-                    // Stocke la branche actuelle pour utilisation ultérieure
-                    env.CURRENT_BRANCH = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
-                    echo "Current branch stored: ${env.CURRENT_BRANCH}"
                     echo "================================"
                 }
             }
@@ -172,9 +190,8 @@ EOF
             when {
                 expression { 
                     echo "Checking branch for production deployment:"
-                    echo "BRANCH_NAME from env: ${env.BRANCH_NAME}"
-                    echo "CURRENT_BRANCH from git: ${env.CURRENT_BRANCH}"
-                    return env.BRANCH_NAME == 'master' || env.BRANCH_NAME == 'main' || env.CURRENT_BRANCH == 'master' || env.CURRENT_BRANCH == 'main'
+                    echo "Current branch: ${env.CURRENT_BRANCH}"
+                    return env.CURRENT_BRANCH.contains('master') || env.CURRENT_BRANCH.contains('main')
                 }
             }
             steps {
@@ -184,7 +201,7 @@ EOF
                     
                     Attention : Vous êtes sur le point de déployer en PRODUCTION !
                     
-                    - Branche actuelle : ${env.BRANCH_NAME}
+                    - Branche actuelle : ${env.CURRENT_BRANCH}
                     - Environment : production
                     - Services concernés : movie-service et cast-service
                     
