@@ -143,7 +143,7 @@ EOF
         stage('Deploy to Production') {
             when {
                 expression { 
-                    return env.GIT_BRANCH == 'origin/master' || env.GIT_BRANCH == 'origin/main'
+                    return env.GIT_BRANCH == 'origin/master'
                 }
             }
             steps {
