@@ -3,10 +3,11 @@ pipeline {
     
     environment {
         DOCKER_REGISTRY = 'rcollin1981'
-        // Utiliser les credentials de type 'Username with password'
+        APP_NAME = 'fastapiapp'
         DOCKER_CREDENTIALS = credentials('DOCKER_HUB_PASS')
-        // Utilisation de la variable Jenkins 'config' pour kubeconfig
         KUBECONFIG = credentials('config')
+        MOVIE_SERVICE_IMAGE = "${DOCKER_REGISTRY}/jenkins_devops_exams_movie_service"
+        CAST_SERVICE_IMAGE = "${DOCKER_REGISTRY}/jenkins_devops_exams_cast_service"
     }
     
     stages {
@@ -24,32 +25,21 @@ pipeline {
             }
         }
         
-        stage('Build & Push Docker Images') {
+        stage('Pull Docker Images') {
             steps {
                 script {
-                    // Login to Docker Hub avec la variable existante
+                    // Login to Docker Hub
                     sh "echo ${DOCKER_HUB_PASS} | docker login -u ${DOCKER_REGISTRY} --password-stdin"
                     
-                    // Build and push movie service
-                    dir('movie-service') {
-                        sh """
-                            docker build -t ${DOCKER_REGISTRY}/movie-service:${BUILD_NUMBER} .
-                            docker push ${DOCKER_REGISTRY}/movie-service:${BUILD_NUMBER}
-                        """
-                    }
-                    
-                    // Build and push cast service
-                    dir('cast-service') {
-                        sh """
-                            docker build -t ${DOCKER_REGISTRY}/cast-service:${BUILD_NUMBER} .
-                            docker push ${DOCKER_REGISTRY}/cast-service:${BUILD_NUMBER}
-                        """
-                    }
+                    // Pull existing images
+                    sh """
+                        docker pull ${MOVIE_SERVICE_IMAGE}
+                        docker pull ${CAST_SERVICE_IMAGE}
+                    """
                 }
             }
         }
         
-        // ... Le reste du Jenkinsfile reste identique ...
         stage('Deploy to Dev') {
             when {
                 branch 'develop'
@@ -59,7 +49,8 @@ pipeline {
                     sh """
                         helm upgrade --install ${APP_NAME}-dev ./charts \
                         --namespace dev \
-                        --set image.tag=${BUILD_NUMBER} \
+                        --set movie.image=${MOVIE_SERVICE_IMAGE} \
+                        --set cast.image=${CAST_SERVICE_IMAGE} \
                         --set environment=dev
                     """
                 }
@@ -75,7 +66,8 @@ pipeline {
                     sh """
                         helm upgrade --install ${APP_NAME}-qa ./charts \
                         --namespace qa \
-                        --set image.tag=${BUILD_NUMBER} \
+                        --set movie.image=${MOVIE_SERVICE_IMAGE} \
+                        --set cast.image=${CAST_SERVICE_IMAGE} \
                         --set environment=qa
                     """
                 }
@@ -91,7 +83,8 @@ pipeline {
                     sh """
                         helm upgrade --install ${APP_NAME}-staging ./charts \
                         --namespace staging \
-                        --set image.tag=${BUILD_NUMBER} \
+                        --set movie.image=${MOVIE_SERVICE_IMAGE} \
+                        --set cast.image=${CAST_SERVICE_IMAGE} \
                         --set environment=staging
                     """
                 }
@@ -103,14 +96,14 @@ pipeline {
                 branch 'master'
             }
             steps {
-                // Production deployment requires manual approval
                 input message: 'Deploy to production?', ok: 'Deploy'
                 
                 script {
                     sh """
                         helm upgrade --install ${APP_NAME}-prod ./charts \
                         --namespace prod \
-                        --set image.tag=${BUILD_NUMBER} \
+                        --set movie.image=${MOVIE_SERVICE_IMAGE} \
+                        --set cast.image=${CAST_SERVICE_IMAGE} \
                         --set environment=prod
                     """
                 }
