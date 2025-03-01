@@ -53,7 +53,8 @@ pipeline {
                         --namespace dev \
                         --set movie.image=${MOVIE_SERVICE_IMAGE} \
                         --set cast.image=${CAST_SERVICE_IMAGE} \
-                        --set environment=dev
+                        --set environment=dev \
+                        --set service.nodePort=30001
                     """
                 }
             }
@@ -67,7 +68,8 @@ pipeline {
                         --namespace qa \
                         --set movie.image=${MOVIE_SERVICE_IMAGE} \
                         --set cast.image=${CAST_SERVICE_IMAGE} \
-                        --set environment=qa
+                        --set environment=qa \
+                        --set service.nodePort=30002
                     """
                 }
             }
@@ -81,7 +83,8 @@ pipeline {
                         --namespace staging \
                         --set movie.image=${MOVIE_SERVICE_IMAGE} \
                         --set cast.image=${CAST_SERVICE_IMAGE} \
-                        --set environment=staging
+                        --set environment=staging \
+                        --set service.nodePort=30003
                     """
                 }
             }
@@ -96,7 +99,8 @@ pipeline {
                         --namespace prod \
                         --set movie.image=${MOVIE_SERVICE_IMAGE} \
                         --set cast.image=${CAST_SERVICE_IMAGE} \
-                        --set environment=prod
+                        --set environment=prod \
+                        --set service.nodePort=30004
                     """
                 }
             }
