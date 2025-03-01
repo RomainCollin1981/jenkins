@@ -140,11 +140,22 @@ EOF
         
         stage('Deploy to Production') {
             when {
-                allOf {
-                    branch 'master'  // Déploiement uniquement sur la branche master
-                    expression {
-                        // Vérification supplémentaire que nous sommes bien sur master
-                        sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim() == 'master'
+                anyOf {
+                    allOf {
+                        branch 'master'
+                        expression {
+                            def currentBranch = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+                            echo "Branche courante : ${currentBranch}"
+                            return currentBranch == 'master' || currentBranch == 'main'
+                        }
+                    }
+                    allOf {
+                        branch 'main'
+                        expression {
+                            def currentBranch = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+                            echo "Branche courante : ${currentBranch}"
+                            return currentBranch == 'master' || currentBranch == 'main'
+                        }
                     }
                 }
             }
