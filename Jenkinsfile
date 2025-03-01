@@ -4,7 +4,8 @@ pipeline {
     environment {
         DOCKER_REGISTRY = 'rcollin1981'
         APP_NAME = 'fastapiapp'
-        DOCKER_CREDS = credentials('DOCKER_HUB_CREDS')
+        // Utilisation des credentials Docker Hub existants
+        DOCKER_HUB = credentials('DOCKER_HUB_PASS')
         KUBECONFIG = credentials('config')
         MOVIE_SERVICE_IMAGE = "${DOCKER_REGISTRY}/jenkins_devops_exams_movie_service:latest"
         CAST_SERVICE_IMAGE = "${DOCKER_REGISTRY}/jenkins_devops_exams_cast_service:latest"
@@ -14,7 +15,6 @@ pipeline {
         stage('Create Namespaces') {
             steps {
                 script {
-                    // Création des namespaces pour chaque environnement
                     sh '''
                         kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
                         kubectl create namespace qa --dry-run=client -o yaml | kubectl apply -f -
@@ -28,14 +28,12 @@ pipeline {
         stage('Docker Login & Pull Images') {
             steps {
                 script {
-                    // Utilisation sécurisée des credentials Docker
-                    withCredentials([usernamePassword(credentialsId: 'DOCKER_HUB_CREDS', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh '''
-                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                            docker pull ${MOVIE_SERVICE_IMAGE}
-                            docker pull ${CAST_SERVICE_IMAGE}
-                        '''
-                    }
+                    // Utilisation des credentials existants
+                    sh """
+                        echo ${DOCKER_HUB_PSW} | docker login -u ${DOCKER_HUB_USR} --password-stdin
+                        docker pull ${MOVIE_SERVICE_IMAGE}
+                        docker pull ${CAST_SERVICE_IMAGE}
+                    """
                 }
             }
         }
@@ -46,13 +44,13 @@ pipeline {
             }
             steps {
                 script {
-                    sh '''
+                    sh """
                         helm upgrade --install ${APP_NAME}-dev ./charts \
                         --namespace dev \
                         --set movie.image=${MOVIE_SERVICE_IMAGE} \
                         --set cast.image=${CAST_SERVICE_IMAGE} \
                         --set environment=dev
-                    '''
+                    """
                 }
             }
         }
@@ -63,13 +61,13 @@ pipeline {
             }
             steps {
                 script {
-                    sh '''
+                    sh """
                         helm upgrade --install ${APP_NAME}-qa ./charts \
                         --namespace qa \
                         --set movie.image=${MOVIE_SERVICE_IMAGE} \
                         --set cast.image=${CAST_SERVICE_IMAGE} \
                         --set environment=qa
-                    '''
+                    """
                 }
             }
         }
@@ -80,13 +78,13 @@ pipeline {
             }
             steps {
                 script {
-                    sh '''
+                    sh """
                         helm upgrade --install ${APP_NAME}-staging ./charts \
                         --namespace staging \
                         --set movie.image=${MOVIE_SERVICE_IMAGE} \
                         --set cast.image=${CAST_SERVICE_IMAGE} \
                         --set environment=staging
-                    '''
+                    """
                 }
             }
         }
@@ -98,13 +96,13 @@ pipeline {
             steps {
                 input message: 'Deploy to production?', ok: 'Deploy'
                 script {
-                    sh '''
+                    sh """
                         helm upgrade --install ${APP_NAME}-prod ./charts \
                         --namespace prod \
                         --set movie.image=${MOVIE_SERVICE_IMAGE} \
                         --set cast.image=${CAST_SERVICE_IMAGE} \
                         --set environment=prod
-                    '''
+                    """
                 }
             }
         }
@@ -112,8 +110,10 @@ pipeline {
     
     post {
         always {
-            sh 'docker logout'
-            cleanWs()
+            node('any') {  // Ajout du contexte node pour le bloc post
+                sh 'docker logout'
+                cleanWs()
+            }
         }
     }
 } 
