@@ -4,15 +4,17 @@ pipeline {
     environment {
         DOCKER_REGISTRY = 'rcollin1981'
         APP_NAME = 'fastapiapp'
-        DOCKER_CREDENTIALS = credentials('docker-hub-credentials')
-        KUBECONFIG = credentials('kubeconfig')
+        // Utilisation de la variable Jenkins existante
+        DOCKER_HUB_PASS = credentials('DOCKER_HUB_PASS')
+        // Utilisation de la variable Jenkins 'config' pour kubeconfig
+        KUBECONFIG = credentials('config')
     }
     
     stages {
         stage('Create Namespaces') {
             steps {
                 script {
-                    // Cat ion des namespacgit add.es pour chaque environnement
+                    // Création des namespaces pour chaque environnement
                     sh '''
                         kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
                         kubectl create namespace qa --dry-run=client -o yaml | kubectl apply -f -
@@ -26,8 +28,8 @@ pipeline {
         stage('Build & Push Docker Images') {
             steps {
                 script {
-                    // Login to Docker Hub
-                    sh "echo ${DOCKER_CREDENTIALS_PSW} | docker login -u ${DOCKER_CREDENTIALS_USR} --password-stdin"
+                    // Login to Docker Hub avec la variable existante
+                    sh "echo ${DOCKER_HUB_PASS} | docker login -u ${DOCKER_REGISTRY} --password-stdin"
                     
                     // Build and push movie service
                     dir('movie-service') {
@@ -48,6 +50,7 @@ pipeline {
             }
         }
         
+        // ... Le reste du Jenkinsfile reste identique ...
         stage('Deploy to Dev') {
             when {
                 branch 'develop'
@@ -122,4 +125,4 @@ pipeline {
             cleanWs()
         }
     }
-}
+} 
