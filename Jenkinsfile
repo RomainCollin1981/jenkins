@@ -139,6 +139,10 @@ EOF
         }
         
         stage('Deploy to Production') {
+
+            when {
+                branch 'master'  // Déploiement uniquement sur la branche master
+            }
             steps {
                 // Validation manuelle requise
                 input message: 'Êtes-vous sûr de vouloir déployer en PRODUCTION ?', ok: 'Oui, je confirme le déploiement'
