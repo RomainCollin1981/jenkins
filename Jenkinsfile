@@ -30,39 +30,6 @@ pipeline {
             }
         }
         
-        stage('Branch Diagnostic') {
-            steps {
-                script {
-                    echo "=== DIAGNOSTIC DE LA BRANCHE ==="
-                    
-                    // Récupération de la branche de manière plus fiable
-                    def gitBranch = sh(
-                        script: 'git name-rev --name-only HEAD',
-                        returnStdout: true
-                    ).trim()
-                    
-                    echo "Git branch from name-rev: ${gitBranch}"
-                    
-                    // Stockage de la branche
-                    env.CURRENT_BRANCH = gitBranch.replaceAll('remotes/origin/', '')
-                                                 .replaceAll('\\^.*', '')
-                    
-                    echo "Stored branch name: ${env.CURRENT_BRANCH}"
-                    
-                    // Affichage des informations Git
-                    sh '''
-                        echo "Git status:"
-                        git status
-                        
-                        echo "\nGit branch list:"
-                        git branch -a
-                    '''
-                    
-                    echo "================================"
-                }
-            }
-        }
-        
         stage('Create Namespaces') {
             steps {
                 script {
@@ -98,40 +65,27 @@ pipeline {
                 script {
                     // Tests pour movie-service
                     sh '''
-                        # Création du répertoire tests
-                        mkdir -p movie-service/tests
+                        mkdir -p movie-service/tests cast-service/tests
                         
-                        # Création du fichier de test
+                        # Tests pour movie-service
                         cat > movie-service/tests/test_movie.py << 'EOF'
 def test_movie_simple():
     assert True, "Test simple réussi"
-
 def test_movie_addition():
     assert 1 + 1 == 2, "Test d'addition basique"
 EOF
-                        
-                        # Test du conteneur movie-service avec montage du répertoire tests
                         docker run --rm \
                             -v ${PWD}/movie-service/tests:/app/tests \
                             ${MOVIE_SERVICE_IMAGE} \
                             /bin/bash -c "pip install pytest && python3 -m pytest /app/tests/ -v"
-                    '''
-                    
-                    // Tests pour cast-service
-                    sh '''
-                        # Création du répertoire tests
-                        mkdir -p cast-service/tests
                         
-                        # Création du fichier de test
+                        # Tests pour cast-service
                         cat > cast-service/tests/test_cast.py << 'EOF'
 def test_cast_simple():
     assert True, "Test simple réussi"
-
 def test_cast_addition():
     assert 1 + 1 == 2, "Test d'addition basique"
 EOF
-                        
-                        # Test du conteneur cast-service avec montage du répertoire tests
                         docker run --rm \
                             -v ${PWD}/cast-service/tests:/app/tests \
                             ${CAST_SERVICE_IMAGE} \
@@ -189,33 +143,13 @@ EOF
         stage('Deploy to Production') {
             when {
                 expression { 
-                    echo "Checking branch for production deployment:"
-                    echo "Current branch: ${env.CURRENT_BRANCH}"
-                    return env.CURRENT_BRANCH.contains('master') || env.CURRENT_BRANCH.contains('main')
+                    return env.GIT_BRANCH == 'origin/master' || env.GIT_BRANCH == 'origin/main'
                 }
             }
             steps {
-                // Validation manuelle requise avec message explicite
-                input message: '''
-                    DÉPLOIEMENT EN PRODUCTION
-                    
-                    Attention : Vous êtes sur le point de déployer en PRODUCTION !
-                    
-                    - Branche actuelle : ${env.CURRENT_BRANCH}
-                    - Environment : production
-                    - Services concernés : movie-service et cast-service
-                    
-                    Êtes-vous absolument sûr de vouloir continuer ?
-                ''', ok: 'Oui, je confirme le déploiement en PRODUCTION'
-                
-                // Pause de sécurité pour la réflexion
-                echo 'Pause de sécurité de 10 secondes avant déploiement...'
-                sleep(time: 10, unit: 'SECONDS')
+                input message: 'Êtes-vous sûr de vouloir déployer en PRODUCTION ?', ok: 'Oui, je confirme'
                 
                 script {
-                    // Message de début de déploiement
-                    echo 'Début du déploiement en PRODUCTION...'
-                    
                     sh """
                         helm upgrade --install ${APP_NAME}-prod ./charts \
                         --namespace prod \
@@ -224,9 +158,6 @@ EOF
                         --set environment=prod \
                         --set service.nodePort=30004
                     """
-                    
-                    // Message de confirmation
-                    echo 'Déploiement en PRODUCTION terminé avec succès!'
                 }
             }
         }
@@ -238,12 +169,6 @@ EOF
                 sh 'docker logout'
                 cleanWs()
             }
-        }
-        success {
-            echo 'Tous les tests ont réussi et les déploiements sont terminés!'
-        }
-        failure {
-            echo 'Le pipeline a échoué. Vérifiez les logs pour plus de détails.'
         }
     }
 } 
